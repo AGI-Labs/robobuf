@@ -1,19 +1,24 @@
+import cv2, deepcopy
 import numpy as np
-import cv2
+
 
 class Transition:
-    def __init__(self, obs, action, next_obs, reward, done):
+    def __init__(self, obs, action, reward, prev_trans=None, next_trans=None):
         self.obs = obs
         self.action = action
-        self.next_obs = next_obs
         self.reward = reward
-        self.done = done
 
-        self.prev = None
-        self.next = None
+        self.prev_trans = prev_trans
+        self.next_trans = next_trans
 
-    def get_data(self):
-        return self.obs.get_data(), self.action, self.next_obs.get_data(), self.reward, self.done
+    @property
+    def done(self):
+        return self.next_trans is None
+
+    @property
+    def first(self):
+        return self.prev_trans is None
+
 
 class ObsWrapper:
     def __init__(self, obs, H=256, W=256):
@@ -43,16 +48,21 @@ class ObsWrapper:
         rgb_image = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2RGB)
         return rgb_image
     
-    def get_data(self):
-        obs = self.obs.copy()
+    def to_dict(self):
+        obs = deepcopy.copy(self.obs)
         for i in range(len(self.encoded_imgs)):
-            obs[f"image_{i}"] = self.encoded_imgs[i]
+            obs[f"enc_image_{i}"] = self.encoded_imgs[i]
         return obs
+
+    @classmethod
+    def from_dict(self):  # this is dict to ObsWrapper parser
+        raise NotImplementedError
 
 class ReplayBuffer:
     def __init__(self, max_size: int):
         self._max_size = max_size
         self._buffer = []
+        self._traj_starts = [] # first observation in each traj
 
     def add(self, transition: Transition):
         if len(self._buffer) >= self._max_size:
@@ -68,6 +78,14 @@ class ReplayBuffer:
         idx: int,
     ):
         return self._buffer[idx]
+
+    def traj_starts(self):
+        # returns iterator of trajectory starts?
+        return self._traj_starts
     
-    def get_data(self):
-        return [t.get_data() for t in self._buffer]
+    def to_traj_list(self):
+        raise NotImplementedError()
+
+    @classmethod
+    def load_traj_list(self):  # this is traj_list --> buffer parser
+        raise NotImplementedError()
