@@ -43,15 +43,19 @@ class ObsWrapper:
     def state(self):
         return self.obs["state"]
 
-    def _encode_image(self, image):
-        _, encoded_image = cv2.imencode(".jpg", image)
-        return encoded_image
+    def _encode_image(self, rgb_image):
+        bgr_image = rgb_image[:,:,::-1]
+        if bgr_image.shape[:2] != (self.H, self.W):
+            bgr_image = cv2.resize(bgr_image, (self.H, self.W), 
+                                   interpolation=cv2.INTER_CUBIC)
+        _, encoded = cv2.imencode(".jpg", bgr_image)
+        return encoded
 
     def image(self, idx=0):
         encoded_image_np = np.frombuffer(self.obs[f"enc_cam_{idx}"], dtype=np.uint8)
-        cv2_image = cv2.imdecode(encoded_image_np, cv2.IMREAD_COLOR)
-        cv2_image = cv2.resize(cv2_image, (self.H, self.W))
-        rgb_image = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2RGB)
+        bgr_image = cv2.imdecode(encoded_image_np, cv2.IMREAD_COLOR)
+        assert bgr_image.shape[:2] == (self.H, self.W), "height and width don't match!"
+        rgb_image = bgr_image[:,:,::-1]
         return rgb_image
 
     def to_dict(self):
@@ -59,8 +63,8 @@ class ObsWrapper:
         return obs
 
     @classmethod
-    def from_dict(self, obs):  # this is dict to ObsWrapper parser
-        return ObsWrapper(obs)
+    def from_dict(cls, obs):  # this is dict to ObsWrapper parser
+        return cls(obs)
 
 
 class ReplayBuffer:
@@ -114,8 +118,8 @@ class ReplayBuffer:
         return trajs
 
     @classmethod
-    def load_traj_list(traj_list):  # this is traj_list --> buffer parser
-        buffer = ReplayBuffer()
+    def load_traj_list(cls, traj_list):  # this is traj_list --> buffer parser
+        buffer = cls()
         buffer.append_traj_list(traj_list)
         return buffer
 
