@@ -3,7 +3,6 @@ import copy
 import cv2
 import numpy as np
 
-
 class Transition:
     def __init__(self, obs, action, reward, prev_trans=None, next_trans=None):
         self.obs = obs
@@ -35,10 +34,10 @@ class ObsWrapper:
         cam_keys = [k for k in obs.keys() if "cam" in k]
         for i, cam_key in enumerate(cam_keys):
             if "enc" not in cam_key:
-                self.obs[f"enc_cam_{i}"] = self._encode_image(obs[cam_key])
+                self.obs[f"enc_cam_{cam_key}"] = self._encode_image(obs[cam_key])
             else:
                 self.obs[cam_key] = obs[cam_key]
-
+            
     @property
     def state(self):
         return self.obs["state"]
