@@ -25,7 +25,7 @@ class Transition:
 
 
 class ObsWrapper:
-    def __init__(self, obs, H=256, W=256):
+    def __init__(self, obs, H=256, W=256, skip_cam_idxs=[]):
         self.H = H
         self.W = W
 
@@ -33,10 +33,11 @@ class ObsWrapper:
 
         cam_keys = [k for k in obs.keys() if "cam" in k]
         for i, cam_key in enumerate(cam_keys):
-            if "enc" not in cam_key:
-                self.obs[f"enc_cam_{cam_key}"] = self._encode_image(obs[cam_key])
-            else:
-                self.obs[cam_key] = obs[cam_key]
+            if i not in skip_cam_idxs:
+                if ("enc" not in cam_key):
+                    self.obs[f"enc_cam_{i}"] = self._encode_image(obs[cam_key])
+                else:
+                    self.obs[cam_key] = obs[cam_key]
             
     @property
     def state(self):
