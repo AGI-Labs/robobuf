@@ -85,7 +85,7 @@ class ReplayBuffer:
 
         self._buffer.append(transition)
 
-        if transition.first:
+        if is_first:
             self._traj_starts.append(transition)
 
     def __len__(self):
@@ -114,6 +114,9 @@ class ReplayBuffer:
                 traj.append(transition.to_tuple())
                 transition = transition.next
 
+            # append last transition
+            traj.append(transition.to_tuple())
+
             trajs.append(traj)
         return trajs
 
@@ -123,9 +126,14 @@ class ReplayBuffer:
         buffer.append_traj_list(traj_list)
         return buffer
 
-    def append_traj_list(self, traj_list):
+    def append_traj_list(self, traj_list, skip_actors=["ai_agent"]):
         for traj in traj_list:
+            trans_count = 0
+            # print(f"adding new traj with {len(traj)} transitions")
             for i, trans in enumerate(traj):
                 obs, action, reward = trans
+                if "actor" in obs.keys() and obs["actor"] in skip_actors:
+                    continue                    
                 transition = Transition(ObsWrapper.from_dict(obs), action, reward)
-                self.add(transition, i == 0)
+                self.add(transition, trans_count == 0)
+                trans_count += 1
