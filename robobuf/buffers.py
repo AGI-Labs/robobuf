@@ -72,8 +72,9 @@ class ReplayBuffer:
         self._max_size = max_size
         self._buffer = []
         self._traj_starts = []  # first observation in each traj
+        self._goal_idxs = []
 
-    def add(self, transition: Transition, is_first=False):
+    def add(self, transition: Transition, is_first=False, is_last = False):
         if len(self._buffer) >= self._max_size:
             print(f"buffer full with size {len(self._buffer)}")
             print(f"skip adding obs {transition}")
@@ -82,11 +83,19 @@ class ReplayBuffer:
             transition.prev = self._buffer[-1] if len(self._buffer) > 0 else None
             if len(self._buffer) > 0:
                 self._buffer[-1].next = transition
+        
+        if is_last:
+            self._goal_idxs.append(len(self._buffer))
 
         self._buffer.append(transition)
 
         if is_first:
             self._traj_starts.append(transition)
+
+    def get_goal_transition(self, cur_transitions_idx):
+        for goal_idx in self._goal_idxs:
+            if goal_idx > cur_transitions_idx:
+                return self._buffer[goal_idx]
 
     def __len__(self):
         return len(self._buffer)
@@ -95,7 +104,7 @@ class ReplayBuffer:
         self,
         idx: int,
     ):
-        return self._buffer[idx]
+        return self._buffer[idx], self.get_goal_transition(idx)
 
     def clear(self):
         self._buffer.clear()
@@ -135,5 +144,5 @@ class ReplayBuffer:
                 if "actor" in obs.keys() and obs["actor"] in skip_actors:
                     continue                    
                 transition = Transition(ObsWrapper.from_dict(obs), action, reward)
-                self.add(transition, trans_count == 0)
+                self.add(transition, trans_count == 0, trans_count == len(traj) - 1)
                 trans_count += 1
