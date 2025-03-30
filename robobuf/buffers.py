@@ -43,6 +43,10 @@ class ObsWrapper:
     def state(self):
         return self.obs["state"]
 
+    @property
+    def lang(self):
+        return self.obs["lang"] if "lang" in self.obs else None
+
     def _encode_image(self, rgb_image):
         bgr_image = rgb_image[:,:,::-1]
         if bgr_image.shape[:2] != (self.H, self.W):
